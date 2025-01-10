@@ -1,0 +1,32 @@
+TIP CHELTUIELI,ORAS,COST,RON
+(cheltuieli) Produse - aprovizionare/adaugare stoc),Brasov,0.00,RON
+(cheltuieli) Produse - aprovizionare/adaugare stoc),Bucuresti,0.00,RON
+(cheltuieli) Produse - aprovizionare/adaugare stoc),Cluj-Napoca,0.00,RON
+(cheltuieli) Produse - aprovizionare/adaugare stoc),Iasi,0.00,RON
+(cheltuieli) Produse - aprovizionare/adaugare stoc),Timisoara,303.32,RON
+(salariu) Andrei Popescu,Bucuresti,129.60,RON
+(salariu) George Amardoanei,Bucuresti,178.20,RON
+(salariu) Luca Costache,Bucuresti,192.00,RON
+(salariu) Eusebiu Aurelian,Bucuresti,145.80,RON
+(salariu) Catrina Popa,Bucuresti,178.20,RON
+(salariu) Tudor Murgescu,Bucuresti,170.10,RON
+(salariu) Dana Sirbu,Bucuresti,178.20,RON
+(salariu) Mihaela Costache,Bucuresti,192.00,RON
+(salariu) Alin Luchian,Bucuresti,145.80,RON
+(salariu) Tudor Petrescu,Iasi,162.00,RON
+(salariu) Andreea Stoian,Iasi,240.00,RON
+(salariu) Moraru Petru,Cluj-Napoca,178.20,RON
+(salariu) Cristian Nucsoara,Cluj-Napoca,228.00,RON
+(salariu) Bogdan Valeanu,Timisoara,188.10,RON
+(salariu) Stefan Manescu,Timisoara,288.00,RON
+(salariu) Laurentiu Talmaseanu,Timisoara,186.30,RON
+(salariu) Dorin Protopache,Brasov,178.20,RON
+(salariu) Raisa Avramescu,Brasov,162.00,RON
+Profit (vanzari produse),Timisoara,83.44,RON
+(cheltuieli) Muzica live,Brasov,399.78,RON
+(cheltuieli) Via Serata,Bucuresti,299.99,RON
+TOTAL,Brasov,-739.98,RON
+TOTAL,Bucuresti,-1809.89,RON
+TOTAL,Cluj-Napoca,-406.2,RON
+TOTAL,Iasi,-402,RON
+TOTAL,Timisoara,-882.28,RON

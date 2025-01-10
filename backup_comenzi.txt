@@ -1,0 +1,209 @@
+compilare:g++ -g -o main main.cpp gestionare_angajati.cpp gestionare_produse.cpp gestionare_comenzi.cpp angajat.cpp produs.cpp comenzi.cpp
+
+
+#include "Gestionare_comenzi.h"
+#include "Gestionare_produse.h"
+#include <fstream>
+#include <sstream>
+#include <algorithm>
+using namespace std;
+
+// Afisare - toate comenzile (derulate de la momentul deschiderii sesiunii!!!)
+void Gestionare_Comenzi::afiseaza_comenzi()
+{
+	if (comenzi.empty()) // Verif. daca lista / vect de comenzi este gol
+	{
+		cout << "Nu exista comenzi inregistrate pentru aceasta sesiune (zi)!" << endl;
+		return;
+	}
+	for (Comanda *comanda : comenzi)
+	{
+		cout << "Comanda pentru: " << comanda->get_client_nume() << " " << comanda->get_client_prenume()
+			 << " - Cost total: " << comanda->calculeaza_cost_total() << " RON" << endl;
+	}
+}
+
+void Gestionare_Comenzi::creare_comanda()
+{
+	string nume_client, prenume_client, oras;
+
+	// Citirea datelor clientului
+	fflush(stdin);
+	cout << "Introduceti numele clientului: ";
+	getline(cin, nume_client);
+
+	fflush(stdin);
+	cout << "Introduceti prenumele clientului: ";
+	getline(cin, prenume_client);
+
+	// Citirea orasului pentru care se face comanda
+	cout << "Din ce cafenea doriti sa faceti achizitia? (Bucuresti / Cluj-Napoca / Iasi / Timisoara / Brasov etc.): ";
+	cin >> oras;
+
+	// Validare oras - salvez orasele stiute intr-un vector STL
+	vector<string> orase_valide = {"Bucuresti", "Cluj-Napoca", "Iasi", "Timisoara", "Brasov"};
+	if (find(orase_valide.begin(), orase_valide.end(), oras) == orase_valide.end()) // incerc sa vad daca "oras" NU se regaseste in acest vector
+	{
+		cout << "Eroare: Orasul introdus nu este valid!" << endl;
+		return;
+	}
+
+	// Crearea comenzii folosind Factory Pattern
+	Comanda *comanda_noua = ComandaFactory::creeaza_comanda(nume_client, prenume_client);
+
+	// Adaug observatorul pentru logistica
+	comanda_noua->adauga_observator(&logistica_alerta);
+
+	// Introducerea produselor in comanda
+	bool adauga_produs = true;
+	bool comanda_valida = true;
+	while (adauga_produs)
+	{
+		string nume_produs;
+		int cantitate;
+
+		fflush(stdin);
+		cout << "Introduceti numele produsului: ";
+		getline(cin, nume_produs);
+
+		cout << "Introduceti cantitatea dorita: ";
+		cin >> cantitate;
+
+		// Verif. produsului in stoc (din CSV-ul asociat)
+		try
+		{
+			Produs *produs_in_stoc = gestionare_produse->cauta_produs_in_stoc(nume_produs, oras);
+			if (produs_in_stoc->cantitate < cantitate)
+			{
+				throw runtime_error("Cantitate insuficienta in stoc!");
+			}
+
+			// Scaderea cantitatii din stoc si actualizarea CSV-ului ("indirect", folosindu-ma de gestionare_produse)
+			gestionare_produse->scade_stoc(nume_produs, oras, cantitate);
+
+			// Adaug produsul in comanda, activez eventualele notificari, alerte din Observer daca stocul ce va ramane e mica sau nula! (sub 5 unitati setata)
+			comanda_noua->adauga_produs(produs_in_stoc, cantitate);
+
+			// Salvez produsul comandat in CSV-ul pt locatia de la care s a comandat
+			comanda_noua->salveaza_in_fisier(oras);
+			cout << "Produsul (COMANDA) " << nume_produs << " a fost adaugat si salvat in fisier." << endl;
+		}
+		catch (const exception &e)
+		{
+			cout << "Eroare: " << e.what() << endl;
+			comanda_valida = false; // Daca prod nu e valid, comanda e invalida
+			break;
+		}
+
+		cout << "Vrei sa mai adaugi vreun produs? (1 - Da, 0 - Nu): ";
+		cin >> adauga_produs;
+	}
+
+	// Adaug comanda in lista de comenzi - daca e valida, fireste!
+	if (comanda_valida)
+	{
+		comenzi.push_back(comanda_noua);
+		cout << "Comanda totala a fost adaugata cu succes pentru clientul " << nume_client << " " << prenume_client << endl;
+	}
+	else
+	{
+		delete comanda_noua;
+		cout << "Comanda nu a fost salvata din cauza erorilor." << endl;
+	}
+}
+
+Produs *Gestionare_Produse::cauta_produs_in_stoc(string nume_produs, string oras)
+{
+	string fisier_CSV = "stoc_" + oras + ".csv";
+	ifstream fisier(fisier_CSV.c_str());
+	string linie;
+	getline(fisier, linie); // sar de eventualul antet (unde s-a creat deja)
+	while (getline(fisier, linie))
+	{
+		stringstream extragere_linie_fisier(linie);
+		string nume_produs_fisier, cost_prod_str, cant_prod_str;
+		double cost_produs;
+		int cantitate_produs;
+
+		getline(extragere_linie_fisier, nume_produs_fisier, ',');
+		getline(extragere_linie_fisier, cost_prod_str, ',');
+		getline(extragere_linie_fisier, cant_prod_str, ',');
+
+		try
+		{
+			cost_produs = stod(cost_prod_str);
+			cantitate_produs = stoi(cant_prod_str);
+		}
+		catch (const invalid_argument &e)
+		{
+			cerr << "Eroare la conversia liniei: " << linie << " - " << e.what() << endl;
+			continue; // Trecem la următoarea linie
+		}
+		if (nume_produs_fisier == nume_produs)
+		{
+			fisier.close();
+			return new Produs(nume_produs, cost_produs, cantitate_produs);
+		}
+	}
+
+	fisier.close();
+	throw runtime_error("Produsul nu a fost gasit in stoc!");
+}
+
+void Gestionare_Produse::scade_stoc(string nume_produs, string oras, int cantitate)
+{
+	string fisier_CSV = "stoc_" + oras + ".csv";
+	ifstream fisier_original(fisier_CSV.c_str());
+	ofstream temp("temp_stoc.csv");
+	string linie;
+	bool gasit = false;
+	getline(fisier_original, linie); // sar de eventualul antet (unde s-a creat deja)
+	while (getline(fisier_original, linie))
+	{
+		stringstream extragere_linie_fisier(linie);
+		string nume_produs_fisier, cost_prod_str, cant_prod_str;
+		double cost_produs;
+		int cantitate_produs;
+
+		getline(extragere_linie_fisier, nume_produs_fisier, ',');
+		getline(extragere_linie_fisier, cost_prod_str, ',');
+		getline(extragere_linie_fisier, cant_prod_str, ',');
+
+		try
+		{
+			cost_produs = stod(cost_prod_str);
+			cantitate_produs = stoi(cant_prod_str);
+		}
+		catch (const invalid_argument &e)
+		{
+			cerr << "###EROARE la conversia liniei: " << linie << " - " << e.what() << endl;
+			continue; // Trecem la următoarea linie
+		}
+
+		if (nume_produs_fisier == nume_produs)
+		{
+			cantitate_produs -= cantitate;
+			if (cantitate_produs < 0)
+			{
+				throw runtime_error("Stoc insuficient!");
+			}
+			gasit = true;
+		}
+
+		temp << nume_produs_fisier << "," << cost_produs << "," << cantitate_produs << endl;
+	}
+
+	fisier_original.close();
+	temp.close();
+
+	if (gasit)
+	{
+		remove(fisier_CSV.c_str());
+		rename("temp_stoc.csv", fisier_CSV.c_str());
+	}
+	else
+	{
+		remove("temp_stoc.csv");
+		throw runtime_error("Produsul nu a fost gasit in stoc!");
+	}
+}
